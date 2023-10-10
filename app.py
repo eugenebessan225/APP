@@ -121,9 +121,10 @@ def server_ssh():
                 print("Erreur lors de la connexion à Socket.IO : ", str(e))
                 print("Réessayez dans quelques secondes...")
                 time.sleep(2)  # Attendre 5 secondes avant de réessayer
-        #state = perform_prediction()
-        #return jsonify({"state": str(state)})
-        return jsonify({"succès": "SSH connection ok"})
+        state = perform_prediction()
+        print("the state is :", str(state))
+        return jsonify({"state": str(state)})
+        #return jsonify({"succès": "SSH connection ok"})
     except paramiko.ssh_exception.SSHException as e:
         print("SSH Exception:", str(e))
         return jsonify({"error": "SSH connection failed"})
