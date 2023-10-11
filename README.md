@@ -25,8 +25,14 @@ Python, Flask
 git clone https://github.com/eugenebessan225/app.git
 ```
 2-Install dependencies
+- Si pip
 ```sh
-pip (conda) install
+pip install -r requirements.txt
+```
+- Sinon si conda
+```sh
+conda create --name api --file environment.yml
+conda activate api
 ```
 ## usage
 ### Run app
