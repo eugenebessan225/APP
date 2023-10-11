@@ -28,12 +28,14 @@ git clone https://github.com/eugenebessan225/app.git
 ```sh
 pip (conda) install
 ```
-
 ## usage
 ### Run app
 ```sh
 python app.py
 ```
-
+### API documentation
+  - 'sshserver', methods=['GET'] is used to launch to establish a ssh connection to RPI server and launch the server script to connect socnnect and get data.
+  - 'offsshserver', methods=['GET'] used to turn off the server and break the connections
+  - Une fois le script du serveur lancé, celui ci envoie un message socket au serveur de type "data_request" et commeence à recevoir les données pour le moteur d'IA et pour l'affichage sur le dashboard.
 ## TODO
 Dockerize + link to TimescaleDB
