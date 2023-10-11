@@ -1,23 +1,39 @@
-##The APP API microservice
+## The APP API microservice
 
-Table Of Contents
+## Table Of Contents
+- [About the Project](#about-the-project)
+- [Built With](#built-with)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [TODO](#todo)
 
-About The Project
+## About The Project
 This is an API that link the raspberry py and the frend.
 All the request go through the app
 
-Built With
+## Built With
 Python, Flask
 
-Getting Started
-Clone the repo
-git clone https://github.com/td2thinh/mui-dashboard.git
-Install dependencies
-pip (conda) install 
+## Getting Started
+### Prerequisites
 
-usage
-Run app
+### Installation
+1-Clone the repo
+```sh
+git clone https://github.com/eugenebessan225/app.git
+```
+2-Install dependencies
+```sh
+pip (conda) install
+```
+
+## usage
+### Run app
+```sh
 python app.py
+```
 
-TODO
+## TODO
 Dockerize + link to TimescaleDB
