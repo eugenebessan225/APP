@@ -1,7 +1,11 @@
 import configparser, os, pickle
 from datastats.preprocessor import dataTransformer
 
+
+
 class WearDetectionModel:
+
+    """This class contains the call to the model"""
     def __init__(self, config_path):
 
         config = configparser.ConfigParser()

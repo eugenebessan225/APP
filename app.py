@@ -3,7 +3,6 @@ import configparser
 from datastats import preprocessor
 import socketio
 import pandas as pd
-import numpy as np
 import pickle
 from collections import Counter
 import time
@@ -71,7 +70,6 @@ def perform_prediction():
         signalb = pd.Series(signalb)
         to_predict = preprocessor.dataTransformer(signalb, signalt)
         predicted = model.predict(to_predict)
-        print("predicted = ", predicted[0])
         predictions.append(predicted[0])
         print("prediction list = ", predictions)
         # Réinitialiser le tampon après la transformation
@@ -96,9 +94,10 @@ def get_predictions():
     return jsonify({"state": str(state)})"""
 
 
-
+connected = True  # Variable de contrôle de la connexion Socket.IO
 @app.route('/sshserver', methods=['GET'])
 def server_ssh():
+    global connected
     try:
         print("Connexion ssh")
         client = paramiko.SSHClient()
@@ -106,11 +105,11 @@ def server_ssh():
         client.connect(hostname='100.111.209.119', username='badrt', password='badrT')
 
         #stdin, stdout, stderr = client.exec_command('python /home/badrt/dev_hat/get_data.py')
-        client.exec_command('python /home/badrt/dev_hat/get_data.py')
+        #client.exec_command('python /home/badrt/dev_hat/get_data.py')
+        #command = 'python /home/badrt/thinh/server.py'
+        command = 'python /home/badrt/dev_hat/get_data.py'
+        client.exec_command(command)
 
-        client.close()
-        print("Connexion SSH fermée avec succès.")
-        connected = False
         while not connected:
             try:
                 # Tentez de vous connecter au serveur Socket.IO
@@ -124,7 +123,8 @@ def server_ssh():
         state = perform_prediction()
         print("the state is :", str(state))
         return jsonify({"state": str(state)})
-        #return jsonify({"succès": "SSH connection ok"})
+        #print("connection state ", connected)
+        #return jsonify({"succès": "ok"})
     except paramiko.ssh_exception.SSHException as e:
         print("SSH Exception:", str(e))
         return jsonify({"error": "SSH connection failed"})
@@ -132,15 +132,23 @@ def server_ssh():
 
 @app.route('/offsshserver', methods=['GET'])
 def off_server():
+    global connected
     print("Turning down the server")
     # Commande SSH pour obtenir le PID du processus
     command = "pgrep -f 'python /home/badrt/dev_hat/get_data.py'"
+    #command = "pgrep -f 'python /home/badrt/thinh/server.py'"
 
     # Établir une connexion SSH
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname="100.111.209.119", username="badrt", password="badrT")
 
+    # Arrêtez la connexion Socket.IO
+    if connected:
+        sio.disconnect()
+        print("socket state ", connected)
+        print("Disconnecting Socket")
+        connected = False
     # Exécutez la commande sur le serveur distant
     stdin, stdout, stderr = client.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
@@ -151,13 +159,19 @@ def off_server():
     stdin, stdout, stderr = client.exec_command(f"kill -9 {pid}")
     kill_status = stdout.channel.recv_exit_status()
     client.close()
-
+    print("Connexion SSH fermée avec succès.")
     print(f'kill status {kill_status}')
     if kill_status == 0:
         return jsonify({'message': 'Succès'})
     else:
         return jsonify({'message': 'failed'})
 
+
+
+#@sio.on('row_data')
+#def handle_row_data(data):
+    #while True:
+        #print(data)
 
 
 
