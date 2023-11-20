@@ -11,7 +11,8 @@
 
 ## About The Project
 This is an API that link the raspberry py and the frend.
-All the request go through the app
+All the request go through the app.
+The name in the VM is api_fonc
 
 ## Built With
 Python, Flask
