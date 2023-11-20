@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS timescaledb;
-
 CREATE TABLE IF NOT EXISTS sensors_raw(
   time timestamp,
   acc_0 real,

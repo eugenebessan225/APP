@@ -5,9 +5,5 @@ CREATE TABLE IF NOT EXISTS ml_table(
     ope_ID INTEGER
     time timestamp,
     predict_value INTEGER,
-    pred_eval INTEGER,
-    ope_eval INTEGER,
-    observation TEXT
+    pred_eval INTEGER
 );
-
-SELECT create_hypertable('ml_table', 'time', chunk_time_interval => INTERVAL '1 week');

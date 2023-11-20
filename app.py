@@ -9,12 +9,26 @@ import time
 import paramiko
 from flask_cors import CORS
 from flask import Flask, request, render_template, jsonify
-
+import psycopg2
+from psycopg2 import sql
 
 # Créez un client Socket.IO
 sio = socketio.Client()
 app = Flask(__name__)
 CORS(app)
+#connection.init_app(app)
+
+
+"""try:
+    connector = psycopg2.connect(dbname="postgres",
+                                     user="postgres",
+                                     password="badrT", #badrt pour vm
+                                     host="localhost",
+                                     port="5432")
+
+    print("Connexion à la db reussie")
+except Exception as e:
+    print("erreur de connexion", e)"""
 
 
 config_path = 'config.ini'
@@ -31,20 +45,27 @@ max_buffer_size = 5000  # Nombre maximum de lignes avant la transformation
 # Load the serialized data
 path = "test_dir/replay.pkl"
 with open(path, 'rb') as file:
-    print("\t \t Loading processed data =========>>>>>>>>")
     df = pickle.load(file)
-print(df.head())
 
+
+#conn = connector.connection()
 
 
 @sio.event
 def connect():
     print("connecté")
-    sio.emit('data_request', {'key': 'value'})
+    try:
+        sio.emit('data_request', {'key': 'value'})
+        print("data_request send")
+    except Exception as e:
+        print("erreur d'envoie socket", e)
 
 @sio.event
 def disconnect():
     print("Déconnecté du serveur")
+
+
+
 
 
 def perform_prediction():
@@ -64,8 +85,6 @@ def perform_prediction():
             time.sleep(1 / 2000)
             signalt.append(t)
             signalb.append(b)
-
-
         signalt = pd.Series(signalt)
         signalb = pd.Series(signalb)
         to_predict = preprocessor.dataTransformer(signalb, signalt)
@@ -81,22 +100,11 @@ def perform_prediction():
     return state
 
 
-
-# Route pour récupérer les prédictions
-@app.route('/model', methods=['GET'])
-def get_model():
-    return jsonify({"model": type(model.model).__name__})
-
-"""@app.route('/get_predictions', methods=['GET'])
-def get_predictions():
-    state = perform_prediction()
-    print("the state is :", str(state))
-    return jsonify({"state": str(state)})"""
-
-
-connected = True  # Variable de contrôle de la connexion Socket.IO
+connected = False  # Variable de contrôle de la connexion Socket.IO
+#connection = None
 @app.route('/sshserver', methods=['GET'])
 def server_ssh():
+
     global connected
     try:
         print("Connexion ssh")
@@ -104,13 +112,11 @@ def server_ssh():
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(hostname='100.111.209.119', username='badrt', password='badrT')
 
-        #stdin, stdout, stderr = client.exec_command('python /home/badrt/dev_hat/get_data.py')
-        #client.exec_command('python /home/badrt/dev_hat/get_data.py')
-        #command = 'python /home/badrt/thinh/server.py'
-        command = 'python /home/badrt/dev_hat/get_data.py'
+        command = 'python /home/badrt/dev_hat/get_data_socket.py'
         client.exec_command(command)
-
+        print("socket status", connected)
         while not connected:
+            print("Socket Not connected")
             try:
                 # Tentez de vous connecter au serveur Socket.IO
                 sio.connect('http://100.111.209.119:8765')
@@ -119,12 +125,16 @@ def server_ssh():
             except Exception as e:
                 print("Erreur lors de la connexion à Socket.IO : ", str(e))
                 print("Réessayez dans quelques secondes...")
-                time.sleep(2)  # Attendre 5 secondes avant de réessayer
-        state = perform_prediction()
+                time.sleep(2)  # Attendre 2 secondes avant de réessayer
+
+        """cannal.basic_consume(queue='row_data',
+                              auto_ack=True,
+                              on_message_callback=perform_prediction)"""
+        #state = perform_prediction()
+        state=1
         print("the state is :", str(state))
         return jsonify({"state": str(state)})
-        #print("connection state ", connected)
-        #return jsonify({"succès": "ok"})
+
     except paramiko.ssh_exception.SSHException as e:
         print("SSH Exception:", str(e))
         return jsonify({"error": "SSH connection failed"})
@@ -133,10 +143,10 @@ def server_ssh():
 @app.route('/offsshserver', methods=['GET'])
 def off_server():
     global connected
+
     print("Turning down the server")
     # Commande SSH pour obtenir le PID du processus
-    command = "pgrep -f 'python /home/badrt/dev_hat/get_data.py'"
-    #command = "pgrep -f 'python /home/badrt/thinh/server.py'"
+    command = "pgrep -f 'python /home/badrt/dev_hat/get_data_socket.py'"
 
     # Établir une connexion SSH
     client = paramiko.SSHClient()
@@ -145,10 +155,11 @@ def off_server():
 
     # Arrêtez la connexion Socket.IO
     if connected:
+        sio.emit('stop_data', {'key': 'value'})
         sio.disconnect()
-        print("socket state ", connected)
         print("Disconnecting Socket")
         connected = False
+
     # Exécutez la commande sur le serveur distant
     stdin, stdout, stderr = client.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
@@ -156,6 +167,7 @@ def off_server():
     pid = stdout.read().strip()
     pid = int(pid.decode('utf-8'))
     print(f' pid status {pid}')
+    time.sleep(2)
     stdin, stdout, stderr = client.exec_command(f"kill -9 {pid}")
     kill_status = stdout.channel.recv_exit_status()
     client.close()
@@ -167,26 +179,40 @@ def off_server():
         return jsonify({'message': 'failed'})
 
 
+@app.route('/', methods=['GET'])
+def send():
+    value = int(request.args.get('value', -1))
+    print(f"Received value: {value}")
 
-#@sio.on('row_data')
-#def handle_row_data(data):
-    #while True:
-        #print(data)
+    # Créez un objet de curseur
+    #cursor = connector.cursor()
 
+    # Requête SQL pour insérer des valeurs génériques dans la table ml_table
+    #insert_query = sql.SQL("""
+            #INSERT INTO ml_table (predict_ID, ope_ID, time, predict_value, pred_eval, ope_eval, observation)
+            #VALUES (
+                #DEFAULT, -- predict_ID
+                #DEFAULT, -- ope_ID
+                #NOW(),   -- time
+                #%s,      -- predict_value
+                #%s,      -- pred_eval
+                #%s,      -- ope_eval
+                #%s       -- observation
+            #);
+        #)
 
+    # Paramètres des valeurs constantes
+    #values = (1, value, 1, 'Op ok')
 
-""""@sio.event
-def data(data):
-    signalt = []
-    signalb = []
+    # Exécutez votre requête SQL pour insérer la valeur dans la base de données
+    #cursor.execute(insert_query, values)
 
-    while True:
-        # Recevoir des données du serveur (vous devrez adapter cette partie)
-        # Si aucune donnée n'est reçue, la connexion est probablement fermée
-        if not data:
-            break
-            # Effectuer des prédictions
-            perform_predictions(signalb, signalt)"""
+    # Validez la transaction et fermez le curseur
+    #connector.commit()
+    #cursor.close()
+
+    return jsonify({'message': 'Succès'})
+
 
 # Connectez-vous au serveur Socket.IO
 if __name__ == "__main__":
